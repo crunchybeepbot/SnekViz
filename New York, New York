@@ -1,0 +1,21 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# data from XXXXXXXX
+
+# Create a color map for chromosomes
+colors = ['purple', 'yellow']
+
+# Create the Manhattan plot
+plt.figure(figsize=(10, 6))
+for i, chrom in enumerate(data['chr'].unique()):
+    subset = data[data['chr'] == chrom]
+    plt.scatter(subset['pos'], subset['OR'], color=colors[i % len(colors)], label=chrom)
+
+plt.axhline(y=0, color='black', linestyle='--')  # Add a horizontal line at y=0
+plt.xlabel('Position')
+plt.ylabel('Log Odds Ratio')
+plt.title('Manhattan Plot of Odds Ratios')
+plt.legend(title='Chromosome')
+plt.show() #note: code works as of 10/28. But for given input file, ORs are significantly overlapping, making the plot hella ugly. 
