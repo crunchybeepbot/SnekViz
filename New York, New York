@@ -13,7 +13,7 @@ for i, chrom in enumerate(data['chr'].unique()):
     subset = data[data['chr'] == chrom]
     plt.scatter(subset['pos'], subset['OR'], color=colors[i % len(colors)], label=chrom)
 
-plt.axhline(y=0, color='black', linestyle='--')  # Add a horizontal line at y=0
+plt.axhline(y=1, color='black', linestyle='--')  # y=1 centers the null
 plt.xlabel('Position')
 plt.ylabel('Log Odds Ratio')
 plt.title('Manhattan Plot of Odds Ratios')
