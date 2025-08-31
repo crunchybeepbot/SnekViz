@@ -1,0 +1,78 @@
+# Network-Based SEIR Model in R
+# This script simulates the spread of an infectious disease on a contact network using the SEIR model.
+#has not been tested like other scripts
+
+# Load required library
+if (!require(igraph)) install.packages("igraph")
+library(igraph)
+
+# Parameters
+N <- 1000           # Number of nodes (individuals)
+p_edge <- 0.01      # Probability of edge creation in the network
+beta <- 0.05        # Transmission rate per contact per time step
+sigma <- 0.2        # Rate of progression from exposed to infectious (1/latent period)
+gamma <- 0.1        # Recovery rate (1/infectious period)
+timesteps <- 100    # Number of simulation steps
+init_infected <- 5  # Initial number of infectious individuals
+
+# States: 1 = S, 2 = E, 3 = I, 4 = R
+state <- rep(1, N)
+
+# Initialize network
+set.seed(42)
+g <- erdos.renyi.game(N, p_edge, directed = FALSE)
+
+# Initialize states: seed initial infected and exposed
+init_I <- sample(1:N, init_infected)
+state[init_I] <- 3
+
+# Data storage
+output <- data.frame(
+  time = 0:timesteps,
+  S = NA,
+  E = NA,
+  I = NA,
+  R = NA
+)
+output[1,2:5] <- table(factor(state, levels=1:4))
+
+# Simulation loop
+for (t in 1:timesteps) {
+  new_state <- state
+
+  for (i in 1:N) {
+    if (state[i] == 1) { # Susceptible
+      neighbors <- neighbors(g, i)
+      if (length(neighbors) > 0) {
+        inf_neighbors <- sum(state[neighbors] == 3)
+        p_exposure <- 1 - (1 - beta)^inf_neighbors
+        if (runif(1) < p_exposure) {
+          new_state[i] <- 2 # Exposed
+        }
+      }
+    } else if (state[i] == 2) { # Exposed
+      if (runif(1) < sigma) {
+        new_state[i] <- 3 # Infectious
+      }
+    } else if (state[i] == 3) { # Infectious
+      if (runif(1) < gamma) {
+        new_state[i] <- 4 # Recovered
+      }
+    }
+    # Recovered remain recovered
+  }
+
+  state <- new_state
+  output[t+1, 2:5] <- table(factor(state, levels=1:4))
+}
+
+# Plotting
+matplot(
+  output$time, output[,2:5],
+  type = "l", lty = 1, lwd = 2, col = c("blue", "orange", "red", "green"),
+  xlab = "Time", ylab = "Count", main = "Network-Based SEIR Model"
+)
+legend("right", legend = c("Susceptible", "Exposed", "Infectious", "Recovered"),
+       col = c("blue", "orange", "red", "green"), lty = 1, lwd = 2)
+
+# The output dataframe contains the time series of S, E, I, R.
