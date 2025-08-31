@@ -1,0 +1,1 @@
+This is just meant to act as a reference for a series of code chunks that help to visualize data. Most visualizations are tweaked, and directly related to bioinformatics needs. E.g. First two files are an OR Manhatten Plot and a simple Infectious Disease SIR model.
