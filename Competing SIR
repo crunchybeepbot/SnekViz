@@ -1,0 +1,73 @@
+library(deSolve)
+
+# Define the system of differential equations
+sir_multistrain <- function(t, state, parameters) {
+  with(as.list(c(state, parameters)), {
+    
+    # Total population
+    N <- S + I1 + I2 + I3 + R
+
+    # Fitness-adjusted transmission rates
+    beta1_eff <- beta0 * (1 - c1)
+    beta2_eff <- beta0 * (1 - c2)
+    beta3_eff <- beta0 * (1 - c3)
+
+    # Fitness-adjusted recovery rates
+    gamma1_eff <- gamma0 * (1 - e1)
+    gamma2_eff <- gamma0 * (1 - e2)
+    gamma3_eff <- gamma0 * (1 - e3)
+
+    # Differential equations
+    dS <- - (beta1_eff * S * I1 + beta2_eff * S * I2 + beta3_eff * S * I3) / N
+    dI1 <- (beta1_eff * S * I1) / N - gamma1_eff * I1 - mu12 * I1 - mu13 * I1
+    dI2 <- (beta2_eff * S * I2) / N - gamma2_eff * I2 + mu12 * I1 - mu23 * I2
+    dI3 <- (beta3_eff * S * I3) / N - gamma3_eff * I3 + mu13 * I1 + mu23 * I2
+    dR <- gamma1_eff * I1 + gamma2_eff * I2 + gamma3_eff * I3
+
+    list(c(dS, dI1, dI2, dI3, dR))
+  })
+}
+
+# Initial state
+init_state <- c(
+  S = 990,
+  I1 = 10,  # Wild-type infection
+  I2 = 0,   # Single-resistant
+  I3 = 0,   # Multi-resistant
+  R = 0
+)
+
+# Parameters
+parameters <- c(
+  beta0 = 0.4,   # Baseline transmission rate
+  gamma0 = 0.1,  # Baseline recovery rate
+
+  # Fitness costs (0 = no cost, closer to 1 = high cost)
+  c1 = 0.0,   # Wild-type
+  c2 = 0.2,   # Single-resistant
+  c3 = 0.4,   # Multi-resistant
+
+  # Effectiveness loss (0 = full treatment effect, 1 = complete failure)
+  e1 = 0.0,   # Wild-type: treated effectively
+  e2 = 0.3,   # Partial resistance
+  e3 = 0.9,   # Almost untreatable
+
+  # Mutation rates
+  mu12 = 1e-5,   # Wild-type → single-resistant
+  mu13 = 1e-7,   # Wild-type → multi-resistant
+  mu23 = 1e-6    # Single → multi-resistant
+)
+
+# Time span
+times <- seq(0, 200, by = 1)
+
+# Solve the system
+output <- ode(y = init_state, times = times, func = sir_multistrain, parms = parameters)
+output <- as.data.frame(output)
+
+# Plot the results
+matplot(output$time, output[, c("I1", "I2", "I3")], type = "l", lty = 1, lwd = 2,
+        col = c("blue", "orange", "red"),
+        xlab = "Time", ylab = "Infected Individuals", main = "Strain Dynamics")
+legend("topright", legend = c("Wild-type (I1)", "Single-resistant (I2)", "Multi-resistant (I3)"),
+       col = c("blue", "orange", "red"), lty = 1, lwd = 2)
