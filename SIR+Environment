@@ -1,0 +1,60 @@
+
+#this code outlines an ODE system which includes environmental factors in "oscillations"
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+# Define environmental driver E(t) - e.g., sinusoidal seasonal variation
+def E(t):
+    return 0.5 * np.sin(2 * np.pi * t / 50)  # period = 50 time units
+
+# SI model with environmental effect on transmission rates
+def model(y, t, beta_S, beta_R, gamma_S, gamma_R, mu_SR, k_S, k_R):
+    S, I_S, I_R = y
+    
+    # Environmental modulation factors on transmission
+    alpha_S = 1 + k_S * E(t)
+    alpha_R = 1 + k_R * E(t)
+    
+    # ODE system
+    dSdt = -alpha_S * beta_S * S * I_S - alpha_R * beta_R * S * I_R + gamma_S * I_S + gamma_R * I_R
+    dISdt = alpha_S * beta_S * S * I_S - gamma_S * I_S - mu_SR * I_S
+    dIRdt = alpha_R * beta_R * S * I_R + mu_SR * I_S - gamma_R * I_R
+    
+    return [dSdt, dISdt, dIRdt]
+
+# Parameters
+beta_S = 0.4      # transmission rate susceptible strain
+beta_R = 0.3      # transmission rate resistant strain
+gamma_S = 0.1     # clearance susceptible
+gamma_R = 0.1     # clearance resistant
+mu_SR = 0.02      # mutation from susceptible to resistant
+k_S = 0.5         # env effect on susceptible strain transmission
+k_R = -0.3        # env effect on resistant strain transmission (negative means reduces transmission)
+
+# Initial conditions
+S0 = 0.9
+I_S0 = 0.1
+I_R0 = 0.0
+
+y0 = [S0, I_S0, I_R0]
+
+# Time points
+t = np.linspace(0, 200, 1000)
+
+# Solve ODE
+solution = odeint(model, y0, t, args=(beta_S, beta_R, gamma_S, gamma_R, mu_SR, k_S, k_R))
+S, I_S, I_R = solution.T
+
+# Plotting
+plt.figure(figsize=(10,6))
+plt.plot(t, S, label='Susceptible (S)', color='blue')
+plt.plot(t, I_S, label='Infected Susceptible Strain (I_S)', color='green')
+plt.plot(t, I_R, label='Infected Resistant Strain (I_R)', color='red')
+plt.xlabel('Time')
+plt.ylabel('Proportion of Population')
+plt.title('SI Model + Environmental Drivers')
+plt.legend()
+plt.grid(True)
+plt.show()
