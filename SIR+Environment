@@ -48,13 +48,30 @@ solution = odeint(model, y0, t, args=(beta_S, beta_R, gamma_S, gamma_R, mu_SR, k
 S, I_S, I_R = solution.T
 
 # Plotting
-plt.figure(figsize=(10,6))
-plt.plot(t, S, label='Susceptible (S)', color='blue')
-plt.plot(t, I_S, label='Infected Susceptible Strain (I_S)', color='green')
-plt.plot(t, I_R, label='Infected Resistant Strain (I_R)', color='red')
-plt.xlabel('Time')
-plt.ylabel('Proportion of Population')
-plt.title('SI Model + Environmental Drivers')
-plt.legend()
-plt.grid(True)
+# Compute environmental factor over time
+E_vals = E(t)
+
+# Plotting: Two subplots
+fig, axs = plt.subplots(2, 1, figsize=(12, 10), sharex=True)
+
+# Epidemic dynamics
+axs[0].plot(t, S, label='Susceptible (S)', color='blue')
+axs[0].plot(t, I_S, label='Infected Susceptible Strain (I_S)', color='green')
+axs[0].plot(t, I_R, label='Infected Resistant Strain (I_R)', color='red')
+axs[0].set_ylabel('Proportion of Population')
+axs[0].set_title('SI Model with Environmental Drivers')
+axs[0].legend()
+axs[0].grid(True)
+
+# Environmental forcing
+axs[1].plot(t, E_vals, label='Environmental Driver E(t)', color='purple')
+axs[1].axhline(0, color='gray', linestyle='--', linewidth=0.8)
+axs[1].set_xlabel('Time')
+axs[1].set_ylabel('E(t)')
+axs[1].set_title('Environmental Oscillation')
+axs[1].legend()
+axs[1].grid(True)
+
+plt.tight_layout()
 plt.show()
+
