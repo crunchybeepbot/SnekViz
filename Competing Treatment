@@ -69,3 +69,98 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+#######
+#Version with layored lines
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
+
+# Base parameters
+base_params = {
+    'beta_S': 0.5,
+    'gamma_S': 0.2,
+    'gamma_S_T': 0.4,
+    'gamma_R': 0.1,
+    'gamma_R_T': 0.1,
+    'epsilon': 0.5,
+    'tau': 0.05,
+    'rho': 0.05,
+    'mu': 0.01,
+    'f': 0.9,
+}
+
+# Time setup
+t_span = (0, 200)
+t_eval = np.linspace(*t_span, 1000)
+
+# Initial conditions
+y0 = [0.7, 0.0, 0.2, 0.05, 0.05, 0.0]  # [S, S_T, IS, IS_T, IR, IR_T]
+
+# Define SIS model
+def sis_model(t, y, params):
+    S, S_T, IS, IS_T, IR, IR_T = y
+    N = S + S_T + IS + IS_T + IR + IR_T
+
+    beta_S = params['beta_S']
+    beta_R = params['f'] * beta_S
+    gamma_S = params['gamma_S']
+    gamma_S_T = params['gamma_S_T']
+    gamma_R = params['gamma_R']
+    gamma_R_T = params['gamma_R_T']
+    epsilon = params['epsilon']
+    tau = params['tau']
+    rho = params['rho']
+    mu = params['mu']
+
+    dS = gamma_S * IS + gamma_R * IR + rho * S_T \
+         - beta_S * S * (IS + IS_T) / N - beta_R * S * (IR + IR_T) / N - tau * S
+
+    dS_T = gamma_S_T * IS_T + gamma_R_T * IR_T + tau * S \
+           - epsilon * beta_S * S_T * (IS + IS_T) / N \
+           - epsilon * beta_R * S_T * (IR + IR_T) / N - rho * S_T
+
+    dIS = beta_S * S * (IS + IS_T) / N - gamma_S * IS - tau * IS + rho * IS_T
+
+    dIS_T = epsilon * beta_S * S_T * (IS + IS_T) / N + tau * IS \
+            - gamma_S_T * IS_T - rho * IS_T - mu * IS_T
+
+    dIR = beta_R * S * (IR + IR_T) / N - gamma_R * IR - tau * IR + rho * IR_T
+
+    dIR_T = epsilon * beta_R * S_T * (IR + IR_T) / N + tau * IR \
+            - gamma_R_T * IR_T - rho * IR_T + mu * IS_T
+
+    return [dS, dS_T, dIS, dIS_T, dIR, dIR_T]
+
+# Plot setup
+plt.figure(figsize=(14, 8))
+labels = ['S', 'S_T', 'IS', 'IS_T', 'IR', 'IR_T']
+colors = ['tab:blue', 'tab:cyan', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple']
+
+# Run 10 simulations with varied parameters
+for run in range(10):
+    # Randomize key parameters around base values
+    params = base_params.copy()
+    params['beta_S'] *= np.random.uniform(0.8, 1.2)  # ±20%
+    params['mu'] *= np.random.uniform(0.5, 1.5)       # ±50%
+    params['f'] = np.random.uniform(0.85, 1.05)       # 0.85 to 1.05 fitness
+
+    # Solve the system
+    sol = solve_ivp(lambda t, y: sis_model(t, y, params), t_span, y0, t_eval=t_eval)
+
+    # Plot all compartments for this run
+    for i in range(6):
+        plt.plot(sol.t, sol.y[i], color=colors[i], alpha=0.25)  # Faded lines for layering
+
+# Legend and labels
+for i in range(6):
+    plt.plot([], [], color=colors[i], label=labels[i])  # Dummy lines for legend
+
+plt.title("Layered SIS Model Simulations with Varying Parameters (10 Runs)")
+plt.xlabel("Time")
+plt.ylabel("Proportion of Population")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
