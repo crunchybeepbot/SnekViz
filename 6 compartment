@@ -1,0 +1,117 @@
+#I like how this code breaks up the ODEs better
+
+import numpy as np
+from scipy.integrate import odeint
+import matplotlib.pyplot as plt
+
+# Initial conditions (proportions sum to 1)
+S_U0 = 0.75
+S_T0 = 0.05
+I_SU0 = 0.08
+I_ST0 = 0.02
+I_RU0 = 0.07
+I_RT0 = 0.03
+
+total0 = S_U0 + S_T0 + I_SU0 + I_ST0 + I_RU0 + I_RT0
+y0 = [x / total0 for x in [S_U0, S_T0, I_SU0, I_ST0, I_RU0, I_RT0]]
+
+# Parameters
+beta_S = 0.6    # Transmission rate susceptible strain
+beta_R = 0.4    # Transmission rate resistant strain
+mu_S = 0.1      # Clearance rate susceptible strain
+mu_R = 0.1      # Clearance rate resistant strain
+phi = 0.02      # Mutation rate susceptible->resistant
+omega = 0.05    # Treatment initiation rate
+theta = 0.03    # Treatment cessation rate
+
+t = np.linspace(0, 100)
+
+def model(y, t, beta_S, beta_R, mu_S, mu_R, phi, omega, theta):
+    S_U, S_T, I_SU, I_ST, I_RU, I_RT = y
+
+    lambda_S = beta_S * (I_SU + I_ST)
+    lambda_R = beta_R * (I_RU + I_RT)
+
+    dS_U = (
+        theta * S_T 
+        - omega * S_U 
+        - lambda_S * S_U 
+        - lambda_R * S_U 
+        + mu_S * I_SU 
+        + mu_R * I_RU
+    )
+
+    dS_T = (
+        omega * S_U 
+        - theta * S_T 
+        - lambda_R * S_T   # S_T can't be infected by susceptible strain
+        + mu_S * I_ST 
+        + mu_R * I_RT
+    )
+
+    dI_SU = (
+        lambda_S * S_U 
+        - omega * I_SU 
+        - phi * I_SU 
+        - mu_S * I_SU 
+        + theta * I_ST
+    )
+
+    dI_ST = (
+        omega * I_SU 
+        - phi * I_ST 
+        - mu_S * I_ST 
+        - theta * I_ST
+    )
+
+    dI_RU = (
+        lambda_R * S_U 
+        + phi * I_SU 
+        - omega * I_RU 
+        - mu_R * I_RU 
+        + theta * I_RT
+    )
+
+    dI_RT = (
+        lambda_R * S_T 
+        + phi * I_ST 
+        + omega * I_RU 
+        - mu_R * I_RT 
+        - theta * I_RT
+    )
+
+    return [dS_U, dS_T, dI_SU, dI_ST, dI_RU, dI_RT]
+
+
+
+result = odeint(model, y0, t, args=(beta_S, beta_R, mu_S, mu_R, phi, omega, theta))
+S_U, S_T, I_SU, I_ST, I_RU, I_RT = result.T
+
+# Plot
+plt.figure(figsize=(14, 8))
+plt.plot(t, S_U, label='S_U (Susceptible Untreated)')
+plt.plot(t, S_T, label='S_T (Susceptible Treated)')
+plt.plot(t, I_SU, label='I_SU (Infected Susceptible Untreated)')
+plt.plot(t, I_ST, label='I_ST (Infected Susceptible Treated)')
+plt.plot(t, I_RU, label='I_RU (Infected Resistant Untreated)')
+plt.plot(t, I_RT, label='I_RT (Infected Resistant Treated)')
+plt.xlabel('Time')
+plt.ylabel('Proportion')
+plt.title('6 Compartment S-I')
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.show()
+
+# Plot total population to check conservation
+total = S_U + S_T + I_SU + I_ST + I_RU + I_RT
+plt.figure(figsize=(8, 4))
+plt.plot(t, total, 'k-', label='Total Population')
+plt.axhline(1, color='r', linestyle='--', label='Expected total=1')
+plt.xlabel('Time')
+plt.ylabel('Sum of all compartments')
+plt.title('Total Population Over Time')
+plt.legend()
+plt.grid()
+plt.tight_layout()
+plt.show()
